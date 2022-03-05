@@ -1,0 +1,13 @@
+version: 1
+
+
+users:
+  - email: test@test.com
+    first_name: User
+    last_name: One
+    groups:
+      - Administrators
+      - Developers
+
+groups:
+  - name: Read-Only
