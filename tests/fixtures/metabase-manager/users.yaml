@@ -1,0 +1,14 @@
+version: 1
+
+
+users:
+  - email: text@example.com
+    first_name: Charles
+    last_name: Lariviere
+    groups:
+      - Administrators
+      - Developers
+
+
+groups:
+  - name: Read-Only
