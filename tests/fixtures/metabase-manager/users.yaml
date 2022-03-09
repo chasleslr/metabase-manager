@@ -8,6 +8,13 @@ users:
     groups:
       - Administrators
       - Developers
+      # TODO: validate that groups are defined
+
+  - email: test@example.com
+    first_name: Foo
+    last_name: Bar
+    groups:
+      - Developers
 
 
 groups:

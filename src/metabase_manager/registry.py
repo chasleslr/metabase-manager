@@ -1,7 +1,17 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Type
 
-from metabase import Database, Field, Metabase, Metric, Segment, Table, User
+from metabase import (
+    Database,
+    Field,
+    Metabase,
+    Metric,
+    PermissionGroup,
+    Segment,
+    Table,
+    User,
+)
+from metabase.resource import Resource
 
 
 @dataclass
@@ -11,6 +21,7 @@ class MetabaseRegistry:
     databases: List[Database] = field(default_factory=list)
     tables: List[Table] = field(default_factory=list)
     users: List[User] = field(default_factory=list)
+    groups: List[PermissionGroup] = field(default_factory=list)
     fields: List[Field] = field(default_factory=list)
     metrics: List[Metric] = field(default_factory=list)
     segments: List[Segment] = field(default_factory=list)
@@ -26,6 +37,10 @@ class MetabaseRegistry:
     def cache_users(self):
         """Find all Users in Metabase and cache in the instance."""
         self.users = User.list(using=self.client)
+
+    def cache_permission_groups(self):
+        """Find all PermissionGroup in Metabase and cache in the instance."""
+        self.groups = PermissionGroup.list(using=self.client)
 
     def cache_fields(self):
         """Find all Fields in Metabase and cache in the instance."""
@@ -56,3 +71,13 @@ class MetabaseRegistry:
     def get_segment(self, id: int) -> Segment:
         """Get a Segment by ID."""
         return next(filter(lambda segment: segment.id == id, self.segments))
+
+    def get_users_by_attribute(self, attribute: str, value: str) -> List[User]:
+        print([getattr(user, attribute) for user in self.users])
+        return [user for user in self.users if getattr(user, attribute) == value]
+
+    def get_instances_for_object(self, obj: Type[Resource]) -> List[Resource]:
+        if obj == User:
+            return self.users
+        if obj == PermissionGroup:
+            return self.groups
