@@ -3,62 +3,8 @@ from pathlib import Path
 from typing import Dict, List, Type, Union
 
 import yaml
-import metabase
-from metabase.resource import Resource
 
-
-class ConfigObject:
-    UNIQUE_ON: str
-    METABASE: Resource
-
-    @classmethod
-    def load(cls, config: dict):
-        return cls(**config)
-
-    @property
-    def key(self):
-        return getattr(self, self.UNIQUE_ON)
-
-    def is_equal(self, resource: Resource) -> bool:
-        raise NotImplementedError
-
-    def create(self):
-        pass
-
-    def update(self):
-        pass
-
-    def delete(self):
-        pass
-
-
-@dataclass
-class Group(ConfigObject):
-    UNIQUE_ON = "name"
-    METABASE = metabase.PermissionGroup
-
-    name: str
-
-    def is_equal(self, group: metabase.PermissionGroup) -> bool:
-        if self.name == group.name:
-            return True
-        return False
-
-
-@dataclass
-class User(ConfigObject):
-    UNIQUE_ON = "email"
-    METABASE = metabase.User
-
-    first_name: str
-    last_name: str
-    email: str
-    groups: List[Group] = field(default_factory=list)
-
-    def is_equal(self, user: metabase.User) -> bool:
-        if self.first_name == user.first_name and self.last_name == user.last_name and self.email == user.email:
-            return True
-        return False
+from metabase_manager.entities import Entity, Group, User
 
 
 @dataclass
@@ -76,7 +22,7 @@ class MetabaseParser:
     def groups(self) -> List[Group]:
         return list(self._groups.values())
 
-    def get_instances_for_object(self, obj: Type[ConfigObject]) -> List[ConfigObject]:
+    def get_instances_for_object(self, obj: Type[Entity]) -> List[Entity]:
         if obj == User:
             return self.users
         if obj == Group:
@@ -115,7 +61,7 @@ class MetabaseParser:
         for obj in objects:
             self.register_object(cls.load(obj), instance_key)
 
-    def register_object(self, obj: ConfigObject, instance_key: str):
+    def register_object(self, obj: Entity, instance_key: str):
         """Register an object to the instance."""
         registry = getattr(self, "_" + instance_key)
 
