@@ -104,13 +104,15 @@ class User(Entity):
                 first_name=self.first_name,
                 last_name=self.last_name,
                 email=self.email,
-                password=uuid4().hex,
+                password=uuid4().hex
             )
             user.send_invite()
         except HTTPError as e:
             if "Email address already in use." in str(e):
                 users = metabase.User.list(
-                    using=using, query=self.email, include_deactivated=True
+                    using=using,
+                    query=self.email,
+                    include_deactivated=True
                 )
                 users[0].reactivate()
             else:
