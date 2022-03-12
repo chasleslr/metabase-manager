@@ -9,5 +9,12 @@ users:
       - Administrators
       - Developers
 
+  - email: test@example.com
+    first_name: User
+    last_name: Two
+    groups:
+      - Developers
+
+
 groups:
   - name: Read-Only

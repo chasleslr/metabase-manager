@@ -8,7 +8,7 @@ from metabase_manager.parser import Group, MetabaseParser, User
 class MetabaseParserTests(TestCase):
     def test_discover(self):
         """Ensure MetabaseParser.discover() returns all yaml files in a given directory and its subdirectories."""
-        directory = os.path.join(os.path.dirname(__file__), "fixtures/metabase-manager")
+        directory = os.path.join(os.path.dirname(__file__), "fixtures/parser")
         files = MetabaseParser.discover(directory)
 
         self.assertEqual(2, len(files))
@@ -16,7 +16,7 @@ class MetabaseParserTests(TestCase):
 
     def test_load_yaml(self):
         """Ensure MetabaseParser.load_yaml() opens and loads a yaml file into a dictionary."""
-        filepath = os.path.join(os.path.dirname(__file__), "fixtures/metabase-manager/users.yaml")
+        filepath = os.path.join(os.path.dirname(__file__), "fixtures/parser/users.yaml")
         users = MetabaseParser.load_yaml(filepath)
 
         self.assertIsInstance(users, dict)
@@ -24,7 +24,7 @@ class MetabaseParserTests(TestCase):
     def test_parse_yaml(self):
         """Ensure MetabaseParser.parse_yaml() registers all objects of all types in the yaml file."""
         # has both users and groups
-        filepath = os.path.join(os.path.dirname(__file__), "fixtures/metabase-manager/users.yaml")
+        filepath = os.path.join(os.path.dirname(__file__), "fixtures/parser/users.yaml")
         objects = MetabaseParser.load_yaml(filepath)
         conf = MetabaseParser()
 
