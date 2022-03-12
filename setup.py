@@ -10,7 +10,7 @@ setup(
         "write_to": "src/metabase_manager/_version.py",
         "fallback_version": "0.0.0",
     },
-    description="A Python package to manage Metabase",
+    description="Manage your Metabase instance programmatically.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Charles Lariviere",
