@@ -1,7 +1,7 @@
 VERSION			:= $(shell git describe --always --dirty)
 
 
-dev:
+install:
 	poetry install
 
 package:
