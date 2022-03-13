@@ -24,7 +24,7 @@ blocks:
   - name: Test
     task:
       secrets:
-        - name: codecov
+        - name: codecov-metabase-manager
 
       prologue:
         commands:
