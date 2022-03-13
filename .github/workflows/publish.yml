@@ -19,6 +19,7 @@ jobs:
       - name: Install pypa/build
         run: |
           pip install pipenv
+          pipenv install -e .
           pipenv sync --dev
 
       - name: Build a binary wheel and a source tarball
