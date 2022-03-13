@@ -1,7 +1,9 @@
 VERSION			:= $(shell git describe --always --dirty)
 
 
-dev:
+install:
+	python3 -m pip install --upgrade pip
+	pip3 install poetry
 	poetry install
 
 package:

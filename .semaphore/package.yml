@@ -1,0 +1,27 @@
+version: v1.0
+
+name: Build & Publish on PyPI
+
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+
+blocks:
+  - name: Build & Publish
+    task:
+      secrets:
+        - name: test-pypi
+
+      prologue:
+        commands:
+          - checkout
+          - make install
+
+      jobs:
+        - name: PyPI
+          commands:
+            - poetry config repositories.test-pypi https://test.pypi.org/legacy/
+            - make package
+            - poetry publish -r test-pypi
