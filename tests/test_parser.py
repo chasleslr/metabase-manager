@@ -33,7 +33,7 @@ class MetabaseParserTests(TestCase):
 
         conf.parse_yaml(objects)
 
-        self.assertEqual(1, len(conf.users))
+        self.assertEqual(2, len(conf.users))
         self.assertEqual(1, len(conf.groups))
 
     def test_register_objects(self):
