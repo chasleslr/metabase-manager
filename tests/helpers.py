@@ -29,7 +29,7 @@ class IntegrationTestCase(TestCase):
         databases = Database.list(using=metabase)
 
         for database in databases:
-            if database.name != "Sample Dataset":
+            if database.name != "Sample Database":
                 database.delete()
 
     @classmethod
