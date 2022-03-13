@@ -12,7 +12,7 @@ blocks:
   - name: Build & Publish
     task:
       secrets:
-        - name: test-pypi
+        - name: test-pypi-metabase-manager
 
       prologue:
         commands:
