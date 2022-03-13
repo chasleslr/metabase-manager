@@ -1,9 +1,21 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "metabase-manager"
+version = "0.0.0"
+description = "Manage your Metabase instance programmatically."
+authors = ["Charles Lariviere"]
 
-[tool.isort]
-profile = "black"
+[tool.poetry.dependencies]
+python = "^3.7"
+metabase-python = "^0.3.0"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+pytest = "^7.0.1"
+pytest-cov = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+metabase-manager = 'metabase_manager.cli.main:cli'

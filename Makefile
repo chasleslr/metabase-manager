@@ -1,19 +1,12 @@
+VERSION			:= $(shell git describe --always --dirty)
+
+
 dev:
-	@pipenv sync --dev
-	@pipenv install -e .
-	@pipenv run pre-commit install
+	poetry install
 
-release: clear-builds build distribute
+package:
+	poetry version ${VERSION}
+	poetry build
 
-clear-builds:
-	@rm -rf dist
-
-build: clear-builds
-	@pipenv run python setup.py sdist
-	@pipenv run setup.py bdist_wheel
-
-distribute:
-	@pipenv run twine upload dist/*
-
-distribute-test:
-	@pipenv run twine upload --repository testpypi dist/* --verbose
+publish:
+	poetry publish
