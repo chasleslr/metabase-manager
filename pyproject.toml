@@ -3,13 +3,24 @@ name = "metabase-manager"
 version = "0.0.0"
 description = "Manage your Metabase instance programmatically."
 authors = ["Charles Lariviere"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/chasleslr/metabase-manager"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+packages = [
+    { include = "metabase_manager", from = "src" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.7"
 metabase-python = "^0.3.0"
 
 [tool.poetry.dev-dependencies]
-black = "^22.1.0"
+black = "22.1.0"
 pytest = "^7.0.1"
 pytest-cov = "^3.0.0"
 
