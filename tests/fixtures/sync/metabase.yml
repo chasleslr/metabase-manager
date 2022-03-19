@@ -1,18 +1,23 @@
 
 users:
-  - email: test@test.com
+  - email: user1@example.com
     first_name: User
     last_name: One
     groups:
       - Administrators
       - Developers
 
-  - email: test@example.com
+  - email: user2@example.com
     first_name: User
     last_name: Two
     groups:
       - Developers
 
+  - email: test@example.com
+    first_name: User
+    last_name: Three
+    groups:
+      - Administrators
 
 groups:
   - name: Read-Only

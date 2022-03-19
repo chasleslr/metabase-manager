@@ -2,7 +2,7 @@ import subprocess
 from unittest import TestCase
 
 import requests
-from metabase import Database, Metabase
+from metabase import Database, Metabase, PermissionGroup, User
 
 
 class IntegrationTestCase(TestCase):
@@ -31,6 +31,14 @@ class IntegrationTestCase(TestCase):
         for database in databases:
             if database.name != "Sample Database":
                 database.delete()
+
+        for user in User.list(using=metabase):
+            if user.email != cls.EMAIL:
+                user.delete()
+
+        for group in PermissionGroup.list(using=metabase):
+            if group.name not in ["All Users", "Administrators"]:
+                group.delete()
 
     @classmethod
     def setup_metabase(cls):
