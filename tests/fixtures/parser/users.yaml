@@ -1,6 +1,3 @@
-version: 1
-
-
 users:
   - email: test@test.com
     first_name: User

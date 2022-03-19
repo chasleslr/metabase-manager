@@ -5,6 +5,7 @@ from typing import Dict, List, Type, Union
 import yaml
 
 from metabase_manager.entities import Entity, Group, User
+from metabase_manager.exceptions import InvalidConfigError
 
 
 @dataclass
@@ -12,7 +13,10 @@ class MetabaseParser:
     _users: Dict[str, User] = field(default_factory=dict)
     _groups: Dict[str, Group] = field(default_factory=dict)
 
-    _keys = {"users": User, "groups": Group}
+    _entities = {
+        "users": User,
+        "groups": Group
+    }
 
     @property
     def users(self) -> List[User]:
@@ -22,26 +26,20 @@ class MetabaseParser:
     def groups(self) -> List[Group]:
         return list(self._groups.values())
 
+    @classmethod
+    def from_paths(cls, paths: List[str]) -> "MetabaseParser":
+        config = cls()
+        for file in paths:
+            loaded = config.load_yaml(file)
+            config.parse_yaml(loaded)
+
+        return config
+
     def get_instances_for_object(self, obj: Type[Entity]) -> List[Entity]:
         if obj == User:
             return self.users
         if obj == Group:
             return self.groups
-
-    def register(self, directory: str):
-        files = self.discover(directory)
-
-        for file in files:
-            loaded = self.load_yaml(file)
-            self.parse_yaml(loaded)
-
-    @staticmethod
-    def discover(directory: str) -> List[Path]:
-        """Discover YAML configuration files recursively in a directory."""
-        files = []
-        for ext in ("yaml", "yml"):
-            files.extend(Path(directory).rglob(f"*.{ext}"))
-        return files
 
     @staticmethod
     def load_yaml(filepath: Union[str, Path]) -> dict:
@@ -51,13 +49,15 @@ class MetabaseParser:
     def parse_yaml(self, yaml: dict):
         # iterate over keys in yaml file
         for key in yaml.keys():
-            # only look for keys we want
-            if key in self._keys.keys():
-                # load every object defined this key (i.e. users, groups, etc.)
-                self.register_objects(yaml[key], key)
+
+            if key not in self._entities.keys():
+                raise InvalidConfigError(f"Found unexpected key in config: {key}")
+
+            # load every object defined this key (i.e. users, groups, etc.)
+            self.register_objects(yaml[key], key)
 
     def register_objects(self, objects: List[dict], instance_key: str):
-        cls = self._keys[instance_key]
+        cls = self._entities[instance_key]
         for obj in objects:
             self.register_object(cls.load(obj), instance_key)
 
