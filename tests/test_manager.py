@@ -1,15 +1,60 @@
+from unittest import TestCase
 from unittest.mock import patch
 
 import metabase
 
+from metabase_manager.entities import Group
 from metabase_manager.exceptions import DuplicateKeyError
 from metabase_manager.manager import MetabaseManager
 from metabase_manager.parser import MetabaseParser, User
 from metabase_manager.registry import MetabaseRegistry
-from tests.helpers import IntegrationTestCase
 
 
-class ManagerTests(IntegrationTestCase):
+class ManagerTests(TestCase):
+    def test_get_allowed_keys(self):
+        """Ensure MetabaseManager.get_allowed_keys() returns all keys in cls._entities."""
+        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+
+        self.assertListEqual(["groups", "users"], manager.get_allowed_keys())
+
+    def test_get_entities_to_manage(self):
+        """
+        Ensure MetabaseManager.get_entities_to_manage() returns a filtered list of Entity,
+        in the same order as the keys in MetabaseManager._entities.
+        """
+        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        self.assertListEqual([Group, User], manager.get_entities_to_manage())
+
+        manager = MetabaseManager(select=["users"], metabase_host=None, metabase_user=None, metabase_password=None)
+        self.assertListEqual([User], manager.get_entities_to_manage())
+
+        manager = MetabaseManager(select=["users", "groups"], metabase_host=None, metabase_user=None, metabase_password=None)
+        self.assertListEqual([Group, User], manager.get_entities_to_manage())
+
+        manager = MetabaseManager(exclude=["users"], metabase_host=None, metabase_user=None, metabase_password=None)
+        self.assertListEqual([Group], manager.get_entities_to_manage())
+
+    def test_parse_config(self):
+        """Ensure MetabaseManager.parse_config() calls MetabaseParser.from_paths()."""
+        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+
+        with patch.object(MetabaseParser, "from_paths", return_value=MetabaseParser()) as from_paths:
+            paths = ["path1", "path2"]
+            manager.parse_config(paths=paths)
+
+            self.assertIsNone(from_paths.assert_called_once_with(paths))
+            self.assertIsInstance(manager.config, MetabaseParser)
+
+    def test_cache_metabase(self):
+        """Ensure MetabaseManager.cache_metabase() calls MetabaseRegistry"""
+        manager = MetabaseManager(select=["users"], exclude=["groups"], metabase_host=None, metabase_user=None, metabase_password=None)
+
+        with patch.object(MetabaseRegistry, "cache") as cache:
+            manager.cache_metabase()
+
+            self.assertIsInstance(manager.registry, MetabaseRegistry)
+            self.assertIsNone(cache.assert_called_once_with(["users"], ["groups"]))
+
     def test_get_metabase_objects(self):
         """
         Ensure MetabaseManager.get_metabase_objects() returns a dictionary with Resource
@@ -24,7 +69,7 @@ class ManagerTests(IntegrationTestCase):
         )
         registry = MetabaseRegistry(client=None, users=[user1])
         conf = MetabaseParser()
-        manager = MetabaseManager(registry=registry, config=conf)
+        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
 
         self.assertDictEqual({"my_email": user1}, manager.get_metabase_objects(User))
 
@@ -50,7 +95,7 @@ class ManagerTests(IntegrationTestCase):
 
         registry = MetabaseRegistry(client=None, users=[user1, user2])
         conf = MetabaseParser()
-        manager = MetabaseManager(registry=registry, config=conf)
+        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
 
         with self.assertRaises(DuplicateKeyError) as e:
             _ = manager.get_metabase_objects(User)
@@ -65,7 +110,7 @@ class ManagerTests(IntegrationTestCase):
         )
         registry = MetabaseRegistry(client=None)
         conf = MetabaseParser(_users={"my_email": user1})
-        manager = MetabaseManager(registry=registry, config=conf)
+        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
 
         self.assertDictEqual({"my_email": user1}, manager.get_config_objects(User))
 
@@ -82,7 +127,7 @@ class ManagerTests(IntegrationTestCase):
         )
         registry = MetabaseRegistry(client=None)
         conf = MetabaseParser(_users={"my_email": user1, "my_email2": user2})
-        manager = MetabaseManager(registry=registry, config=conf)
+        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
 
         with self.assertRaises(DuplicateKeyError) as e:
             _ = manager.get_config_objects(User)
@@ -112,11 +157,15 @@ class ManagerTests(IntegrationTestCase):
             ),
         }
 
-        out = MetabaseManager.find_objects_to_create(registry, config)
+        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
+            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
+                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
 
-        self.assertIsInstance(out, list)
-        self.assertEqual(1, len(out))
-        self.assertEqual(out[0], config["not_my_email"])
+                out = manager.find_objects_to_create(User)
+
+                self.assertIsInstance(out, list)
+                self.assertEqual(1, len(out))
+                self.assertEqual(out[0], config["not_my_email"])
 
     def test_find_objects_to_update(self):
         """
@@ -145,13 +194,15 @@ class ManagerTests(IntegrationTestCase):
             ),
         }
 
-        out = MetabaseManager.find_objects_to_update(registry, config)
+        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
+            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
+                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
 
-        self.assertIsInstance(out, list)
-        self.assertEqual(1, len(out))
-        self.assertIsInstance(out[0], tuple)
-        self.assertEqual(out[0][0], registry["my_email"])
-        self.assertEqual(out[0][1], config["my_email"])
+                out = manager.find_objects_to_update(User)
+
+                self.assertIsInstance(out, list)
+                self.assertEqual(1, len(out))
+                self.assertEqual(out[0], config["my_email"])
 
     def test_find_objects_to_delete(self):
         """
@@ -175,97 +226,60 @@ class ManagerTests(IntegrationTestCase):
             ),
         }
 
-        out = MetabaseManager.find_objects_to_delete(registry, config)
+        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
+            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
+                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
 
-        self.assertIsInstance(out, list)
-        self.assertEqual(1, len(out))
-        self.assertEqual(out[0], registry["my_email"])
+                out = manager.find_objects_to_delete(User)
+
+                self.assertIsInstance(out, list)
+                self.assertEqual(1, len(out))
+                self.assertEqual(out[0], User.from_resource(registry["my_email"]))
 
     def test_create(self):
         """
-        Ensure MetabaseManager.create() calls the .create() method on all
-        object in the list of Resource.
+        Ensure MetabaseManager.create() calls .create() method on a given Entity.
         """
         with patch.object(User, "create") as create:
-            users = [
-                User(
-                    email="my_email",
-                    first_name="my_first_name",
-                    last_name="my_last_name",
-                ),
-                User(
-                    email="my_email",
-                    first_name="my_first_name",
-                    last_name="my_last_name",
-                ),
-            ]
-            MetabaseManager.create(users, self.metabase)
+            user = User(
+                email="my_email",
+                first_name="my_first_name",
+                last_name="my_last_name",
+            )
 
-            self.assertEqual(2, create.call_count)
-            self.assertIsNone(create.assert_called_with(using=self.metabase))
+            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager.create(user)
+
+            self.assertIsNone(create.assert_called_with(using=manager.client))
 
     def test_update(self):
         """
-        Ensure MetabaseManager.update() calls the .update() method on all
-        object in the list of Resource.
+        Ensure MetabaseManager.update() calls .update() method on a given Entity.
         """
         with patch.object(User, "update") as update:
-            users = [
-                (
-                    metabase.User(
-                        id=1,
-                        email="my_email",
-                        first_name="my_first_name",
-                        last_name="my_last_name",
-                        _using=None,
-                    ),
-                    User(
-                        email="my_email",
-                        first_name="my_first_name",
-                        last_name="my_last_name",
-                    ),
-                ),
-                (
-                    metabase.User(
-                        id=2,
-                        email="my_email",
-                        first_name="my_first_name",
-                        last_name="my_last_name",
-                        _using=None,
-                    ),
-                    User(
-                        email="my_email",
-                        first_name="my_first_name",
-                        last_name="my_last_name",
-                    ),
-                ),
-            ]
-            MetabaseManager.update(users)
+            user = User(
+                email="my_email",
+                first_name="my_first_name",
+                last_name="my_last_name",
+            )
 
-            self.assertEqual(2, update.call_count)
+            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager.update(user)
+
+            self.assertTrue(update.called)
 
     def test_delete(self):
         """
-        Ensure MetabaseManager.delete() calls the .delete() method on all
-        object in the list of Resource.
+        Ensure MetabaseManager.delete() calls .delete() method a given Entity.
         """
-        with patch.object(metabase.User, "delete") as delete:
-            users = [
-                metabase.User(
-                    id=1,
-                    email="my_email",
-                    first_name="my_first_name",
-                    last_name="my_last_name",
-                    _using=None,
-                ),
-                metabase.User(
-                    id=2,
-                    email="my_email",
-                    first_name="my_first_name",
-                    last_name="my_last_name",
-                    _using=None,
-                ),
-            ]
-            MetabaseManager.delete(users)
+        with patch.object(User, "delete") as delete:
+            user = User(
+                email="my_email",
+                first_name="my_first_name",
+                last_name="my_last_name",
+            )
 
-            self.assertEqual(2, delete.call_count)
+            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager.delete(user)
+
+            self.assertTrue(delete.called)

@@ -1,10 +1,10 @@
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Type
+from dataclasses import InitVar, dataclass, field
+from typing import Dict, List, Type
 
 from metabase import Metabase
-from metabase.resource import DeleteResource, Resource
+from metabase.resource import Resource
 
-from metabase_manager.entities import Entity, User
+from metabase_manager.entities import Entity, Group, User
 from metabase_manager.exceptions import DuplicateKeyError
 from metabase_manager.parser import MetabaseParser
 from metabase_manager.registry import MetabaseRegistry
@@ -12,8 +12,40 @@ from metabase_manager.registry import MetabaseRegistry
 
 @dataclass
 class MetabaseManager:
-    registry: MetabaseRegistry
-    config: MetabaseParser
+    metabase_host: InitVar[str]
+    metabase_user: InitVar[str]
+    metabase_password: InitVar[str]
+
+    select: List[str] = field(default_factory=list)
+    exclude: List[str] = field(default_factory=list)
+
+    client: Metabase = None
+    registry: MetabaseRegistry = None
+    config: MetabaseParser = None
+
+    # objects are managed in the same order as the dictionary keys
+    _entities = {
+        "groups": Group,
+        "users": User,
+    }
+
+    def __post_init__(self, metabase_host, metabase_user, metabase_password):
+        self.client = Metabase(host=metabase_host, user=metabase_user, password=metabase_password)
+
+    @classmethod
+    def get_allowed_keys(cls) -> List[str]:
+        return list(cls._entities.keys())
+
+    def get_entities_to_manage(self) -> List[Type[Entity]]:
+        select = self.select or self.get_allowed_keys()
+        return [self._entities[key] for key in self.get_allowed_keys() if key in set(select).difference(self.exclude)]
+
+    def parse_config(self, paths: List[str]):
+        self.config = MetabaseParser.from_paths(paths)
+
+    def cache_metabase(self):
+        self.registry = MetabaseRegistry(client=self.client)
+        self.registry.cache(self.select, self.exclude)
 
     def get_metabase_objects(self, obj: Type[Entity]) -> Dict[str, Resource]:
         metabase = {}
@@ -37,42 +69,37 @@ class MetabaseManager:
 
         return config
 
-    @staticmethod
-    def find_objects_to_create(
-        metabase: Dict[str, Resource],
-        config: Dict[str, Entity],
-    ) -> List[Entity]:
+    def find_objects_to_create(self, obj: Type[Entity]) -> List[Entity]:
+        config = self.get_config_objects(obj)
+        metabase = self.get_metabase_objects(obj)
         return [config[key] for key in config.keys() - metabase.keys()]
 
-    @staticmethod
-    def find_objects_to_update(
-        metabase: Dict[str, Resource],
-        config: Dict[str, Entity],
-    ) -> List[Tuple[Resource, Entity]]:
+    def find_objects_to_update(self, obj: Type[Entity]) -> List[Entity]:
+        config = self.get_config_objects(obj)
+        metabase = self.get_metabase_objects(obj)
+
+        entities = []
+        for key in metabase.keys() & config.keys():
+            entity = config[key]
+            if not entity.is_equal(metabase[key]):
+                entity.resource = metabase[key]
+                entities.append(entity)
+
+        return entities
+
+    def find_objects_to_delete(self, obj: Type[Entity]) -> List[Entity]:
+        config = self.get_config_objects(obj)
+        metabase = self.get_metabase_objects(obj)
         return [
-            (metabase[key], config[key])
-            for key in metabase.keys() & config.keys()
-            if not config[key].is_equal(metabase[key])
+            obj.from_resource(resource=metabase[key]) for key in metabase.keys() - config.keys()
+            if obj.can_delete(metabase[key])
         ]
 
-    @staticmethod
-    def find_objects_to_delete(
-        metabase: Dict[str, Resource],
-        config: Dict[str, Entity],
-    ) -> List[Resource]:
-        return [metabase[key] for key in metabase.keys() - config.keys()]
+    def create(self, entity: Entity):
+        entity.create(using=self.client)
 
-    @staticmethod
-    def create(objects: List[Entity], using: Metabase):
-        for obj in objects:
-            obj.create(using=using)
+    def update(self, entity: Entity):
+        entity.update()
 
-    @staticmethod
-    def update(objects: List[Tuple[Resource, Entity]]):
-        for metabase, config in objects:
-            config.update(metabase)
-
-    @staticmethod
-    def delete(objects: List[DeleteResource]):
-        for obj in objects:
-            obj.delete()
+    def delete(self, entity: Entity):
+        entity.delete()
