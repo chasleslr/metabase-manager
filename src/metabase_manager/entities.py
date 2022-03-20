@@ -1,15 +1,19 @@
 from dataclasses import dataclass, field
-from typing import List, Type
+from typing import ClassVar, List, Type
 from uuid import uuid4
 
 import metabase
 from metabase.resource import Resource
 from requests import HTTPError
 
+from metabase_manager.exceptions import NotFoundError
+from metabase_manager.registry import MetabaseRegistry
+
 
 class Entity:
-    METABASE: Type[Resource]
-    resource: Resource = field(default=None, repr=False)
+    METABASE: ClassVar[Type[Resource]]
+    _resource: Resource = field(default=None, repr=False)
+    registry: MetabaseRegistry = field(default=None, repr=False)
 
     @classmethod
     def load(cls, config: dict):
@@ -20,6 +24,19 @@ class Entity:
     def key(self) -> str:
         """Unique key used to identify a matching Metabase Resource."""
         raise NotImplementedError
+
+    @property
+    def resource(self) -> Resource:
+        return self._resource
+
+    @resource.setter
+    def resource(self, value):
+        if self.key != self.get_key_from_metabase_instance(value):
+            raise ValueError(
+                f"Key mismatch between Entity and Resource: {self.key}, {self.get_key_from_metabase_instance(value)}"
+            )
+
+        self._resource = value
 
     @staticmethod
     def get_key_from_metabase_instance(resource: Resource) -> str:
@@ -64,16 +81,20 @@ class Entity:
 
 @dataclass
 class Group(Entity):
-    METABASE = metabase.PermissionGroup
-    _PROTECTED = ["All Users", "Administrators"]
+    METABASE: ClassVar = metabase.PermissionGroup
+    _PROTECTED: ClassVar = ["All Users", "Administrators"]
 
     name: str
 
-    resource: metabase.PermissionGroup = field(default=None, repr=False)
+    _resource: metabase.PermissionGroup = field(default=None, repr=False)
 
     @property
     def key(self) -> str:
         return self.name
+
+    @Entity.resource.getter
+    def resource(self) -> metabase.PermissionGroup:
+        return self._resource
 
     def is_equal(self, group: metabase.PermissionGroup) -> bool:
         return True if self.name == group.name else False
@@ -89,7 +110,7 @@ class Group(Entity):
 
     @classmethod
     def from_resource(cls, resource: metabase.PermissionGroup) -> "Group":
-        return cls(name=resource.name, resource=resource)
+        return cls(name=resource.name, _resource=resource)
 
     def create(self, using: metabase.Metabase):
         metabase.PermissionGroup.create(using=using, name=self.name)
@@ -105,24 +126,55 @@ class Group(Entity):
 
 @dataclass
 class User(Entity):
-    METABASE = metabase.User
+    METABASE: ClassVar = metabase.User
 
     first_name: str
     last_name: str
     email: str
     groups: List[Group] = field(default_factory=list)
 
-    resource: metabase.User = field(default=None, repr=False)
+    _resource: metabase.User = field(default=None, repr=False)
+    registry: MetabaseRegistry = field(default=None, repr=False)
+
+    @classmethod
+    def load(cls, config: dict):
+        """Create an Entity from a dictionary."""
+        groups = config.pop("groups", []) or []
+        return cls(groups=[Group(name=g) for g in groups], **config)
 
     @property
     def key(self) -> str:
         return self.email
+
+    @Entity.resource.getter
+    def resource(self) -> metabase.User:
+        return self._resource
+
+    @property
+    def group_ids(self) -> List[int]:
+        ids = []
+        for group in self.groups:
+            if permission_group := self.registry.get_group_by_name(group.name):
+                ids.append(permission_group.id)
+            else:
+                # add placeholder
+                # validate only on create/update to allow dry-run to succeed
+                # (i.e. if a user is added to a new group as part of the same dry-run,
+                # that group will not yet exist in Metabase)
+                ids.append(-1)
+
+        if 1 not in ids:
+            # 'All Users' is always the first group and is mandatory
+            ids.append(1)
+
+        return ids
 
     def is_equal(self, user: metabase.User) -> bool:
         if (
             self.first_name == user.first_name
             and self.last_name == user.last_name
             and self.email == user.email
+            and set(self.group_ids) == set(user.group_ids)
         ):
             return True
         return False
@@ -138,34 +190,47 @@ class User(Entity):
             last_name=resource.last_name,
             email=resource.email,
             groups="<Unknown>",
-            resource=resource,
+            _resource=resource,
         )
 
     def create(self, using: metabase.Metabase):
         try:
+            self.validate_groups()
             user = metabase.User.create(
                 using=using,
                 first_name=self.first_name,
                 last_name=self.last_name,
                 email=self.email,
                 password=uuid4().hex,
+                group_ids=self.group_ids,
             )
             user.send_invite()
+
         except HTTPError as e:
             if "Email address already in use." in str(e):
-                users = metabase.User.list(
+                self.resource = metabase.User.list(
                     using=using, query=self.email, include_deactivated=True
-                )
-                users[0].reactivate()
+                )[0]
+                self.resource.reactivate()
+                # email already exists, but other attributes might differ
+                self.update()
             else:
                 raise e
 
     def update(self):
+        self.validate_groups()
         self.resource.update(
             first_name=self.first_name,
             last_name=self.last_name,
-            email=self.email,
+            group_ids=self.group_ids,
         )
 
     def delete(self):
         self.resource.delete()
+
+    def validate_groups(self):
+        if -1 in self.group_ids:
+            group = self.groups[self.group_ids.index(-1)]
+            raise NotFoundError(
+                f"User {self.email} is part of group {group.name} which could not be found in Metabase."
+            )

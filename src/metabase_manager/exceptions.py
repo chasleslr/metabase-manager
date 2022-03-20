@@ -4,3 +4,7 @@ class DuplicateKeyError(Exception):
 
 class InvalidConfigError(Exception):
     pass
+
+
+class NotFoundError(Exception):
+    pass
