@@ -12,19 +12,21 @@ class MetabaseParserTests(TestCase):
         Ensure MetabaseParser.from_paths() returns an instance of MetabaseParser
         with registered config.
         """
-        path_users = os.path.join(os.path.dirname(__file__), "fixtures/parser/users.yaml")
-        path_groups = os.path.join(os.path.dirname(__file__), "fixtures/parser/subdirectory/groups.yml")
+        path_users = os.path.join(
+            os.path.dirname(__file__), "fixtures/parser/users.yaml"
+        )
+        path_groups = os.path.join(
+            os.path.dirname(__file__), "fixtures/parser/subdirectory/groups.yml"
+        )
 
         parser = MetabaseParser.from_paths([path_users, path_groups])
 
         self.assertIsInstance(parser, MetabaseParser)
         self.assertSetEqual(
-            {"Administrators", "Developers", "Read-Only"},
-            set(parser._groups.keys())
+            {"Administrators", "Developers", "Read-Only"}, set(parser._groups.keys())
         )
         self.assertSetEqual(
-            {"test@test.com", "test@example.com"},
-            set(parser._users.keys())
+            {"test@test.com", "test@example.com"}, set(parser._users.keys())
         )
         self.assertTrue(all([isinstance(u, User) for u in parser.users]))
         self.assertTrue(all([isinstance(g, Group) for g in parser.groups]))

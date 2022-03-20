@@ -17,12 +17,11 @@ class CliTests(IntegrationTestCase):
             last_name="one",
             email=f"{randint(0, 1000)}@example.com",
             password="123",
-            using=self.metabase
+            using=self.metabase,
         )
 
         self.group_to_delete = PermissionGroup.create(
-            name=f"{randint(0, 1000)}",
-            using=self.metabase
+            name=f"{randint(0, 1000)}", using=self.metabase
         )
 
     def tearDown(self) -> None:
@@ -44,17 +43,19 @@ class CliTests(IntegrationTestCase):
         result = runner.invoke(
             sync,
             [
-                "-f", filepath,
-                "--host", self.HOST,
-                "--user", self.EMAIL,
-                "--password", self.PASSWORD,
-            ]
+                "-f",
+                filepath,
+                "--host",
+                self.HOST,
+                "--user",
+                self.EMAIL,
+                "--password",
+                self.PASSWORD,
+            ],
         )
 
         self.assertEqual(0, result.exit_code)
-        self.assertTrue(
-            "[CREATE] Group(name='Read-Only')" in result.stdout
-        )
+        self.assertTrue("[CREATE] Group(name='Read-Only')" in result.stdout)
         self.assertTrue(
             f"[DELETE] Group(name='{self.group_to_delete.name}')" in result.stdout
         )
@@ -69,7 +70,7 @@ class CliTests(IntegrationTestCase):
         self.assertTrue(
             f"[DELETE] User(first_name='user', last_name='one', email='{self.user_to_delete.email}', groups='<Unknown>')"
             in result.stdout,
-            result.stdout
+            result.stdout,
         )
 
         groups = [g.name for g in PermissionGroup.list(using=self.metabase)]
@@ -88,18 +89,20 @@ class CliTests(IntegrationTestCase):
         result = runner.invoke(
             sync,
             [
-                "-f", filepath,
-                "--host", self.HOST,
-                "--user", self.EMAIL,
-                "--password", self.PASSWORD,
-                "--dry-run"
-            ]
+                "-f",
+                filepath,
+                "--host",
+                self.HOST,
+                "--user",
+                self.EMAIL,
+                "--password",
+                self.PASSWORD,
+                "--dry-run",
+            ],
         )
 
         self.assertEqual(0, result.exit_code)
-        self.assertTrue(
-            "[CREATE] Group(name='Read-Only')" in result.stdout
-        )
+        self.assertTrue("[CREATE] Group(name='Read-Only')" in result.stdout)
         self.assertTrue(
             f"[DELETE] Group(name='{self.group_to_delete.name}')" in result.stdout
         )
@@ -114,7 +117,7 @@ class CliTests(IntegrationTestCase):
         self.assertTrue(
             f"[DELETE] User(first_name='user', last_name='one', email='{self.user_to_delete.email}', groups='<Unknown>')"
             in result.stdout,
-            result.stdout
+            result.stdout,
         )
 
         groups = [g.name for g in PermissionGroup.list(using=self.metabase)]

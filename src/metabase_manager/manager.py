@@ -30,7 +30,9 @@ class MetabaseManager:
     }
 
     def __post_init__(self, metabase_host, metabase_user, metabase_password):
-        self.client = Metabase(host=metabase_host, user=metabase_user, password=metabase_password)
+        self.client = Metabase(
+            host=metabase_host, user=metabase_user, password=metabase_password
+        )
 
     @classmethod
     def get_allowed_keys(cls) -> List[str]:
@@ -38,7 +40,11 @@ class MetabaseManager:
 
     def get_entities_to_manage(self) -> List[Type[Entity]]:
         select = self.select or self.get_allowed_keys()
-        return [self._entities[key] for key in self.get_allowed_keys() if key in set(select).difference(self.exclude)]
+        return [
+            self._entities[key]
+            for key in self.get_allowed_keys()
+            if key in set(select).difference(self.exclude)
+        ]
 
     def parse_config(self, paths: List[str]):
         self.config = MetabaseParser.from_paths(paths)
@@ -91,7 +97,8 @@ class MetabaseManager:
         config = self.get_config_objects(obj)
         metabase = self.get_metabase_objects(obj)
         return [
-            obj.from_resource(resource=metabase[key]) for key in metabase.keys() - config.keys()
+            obj.from_resource(resource=metabase[key])
+            for key in metabase.keys() - config.keys()
             if obj.can_delete(metabase[key])
         ]
 

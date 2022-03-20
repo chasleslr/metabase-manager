@@ -138,7 +138,7 @@ class User(Entity):
             last_name=resource.last_name,
             email=resource.email,
             groups="<Unknown>",
-            resource=resource
+            resource=resource,
         )
 
     def create(self, using: metabase.Metabase):

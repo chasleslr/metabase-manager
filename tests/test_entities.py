@@ -81,8 +81,12 @@ class GroupTests(TestCase):
         group = Group(name="my_name")
 
         self.assertTrue(group.can_delete(PermissionGroup(name="valid", _using=None)))
-        self.assertFalse(group.can_delete(PermissionGroup(name="All Users", _using=None)))
-        self.assertFalse(group.can_delete(PermissionGroup(name="Administrators", _using=None)))
+        self.assertFalse(
+            group.can_delete(PermissionGroup(name="All Users", _using=None))
+        )
+        self.assertFalse(
+            group.can_delete(PermissionGroup(name="Administrators", _using=None))
+        )
 
     def test_get_key_from_metabase_instance(self):
         """Ensure Group.get_key_from_metabase_instance() returns the PermissionGroup name."""
@@ -135,7 +139,10 @@ class GroupTests(TestCase):
         class if the name is in self._PROTECTED_GROUPS.
         """
         with patch.object(metabase.PermissionGroup, "delete") as c:
-            group = Group(name="my_group", resource=metabase.PermissionGroup(name="All Users", _using=None))
+            group = Group(
+                name="my_group",
+                resource=metabase.PermissionGroup(name="All Users", _using=None),
+            )
             group.delete()
 
             self.assertFalse(c.called)
@@ -191,7 +198,7 @@ class UserTests(TestCase):
             first_name="my_name",
             last_name="my_last_name",
             email="test@example.com",
-            _using=None
+            _using=None,
         )
         user = User.from_resource(metabase_user)
 
@@ -266,7 +273,10 @@ class UserTests(TestCase):
                 _using=None,
             )
             user = User(
-                email="my_email", first_name="my_first_name", last_name="my_last_name", resource=metabase_user
+                email="my_email",
+                first_name="my_first_name",
+                last_name="my_last_name",
+                resource=metabase_user,
             )
             user.update()
 
@@ -288,7 +298,10 @@ class UserTests(TestCase):
                 _using=None,
             )
             user = User(
-                email="my_email", first_name="my_first_name", last_name="my_last_name", resource=metabase_user
+                email="my_email",
+                first_name="my_first_name",
+                last_name="my_last_name",
+                resource=metabase_user,
             )
             user.delete()
 

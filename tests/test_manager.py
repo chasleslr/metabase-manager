@@ -13,7 +13,9 @@ from metabase_manager.registry import MetabaseRegistry
 class ManagerTests(TestCase):
     def test_get_allowed_keys(self):
         """Ensure MetabaseManager.get_allowed_keys() returns all keys in cls._entities."""
-        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            metabase_host=None, metabase_user=None, metabase_password=None
+        )
 
         self.assertListEqual(["groups", "users"], manager.get_allowed_keys())
 
@@ -22,23 +24,44 @@ class ManagerTests(TestCase):
         Ensure MetabaseManager.get_entities_to_manage() returns a filtered list of Entity,
         in the same order as the keys in MetabaseManager._entities.
         """
-        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            metabase_host=None, metabase_user=None, metabase_password=None
+        )
         self.assertListEqual([Group, User], manager.get_entities_to_manage())
 
-        manager = MetabaseManager(select=["users"], metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            select=["users"],
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
         self.assertListEqual([User], manager.get_entities_to_manage())
 
-        manager = MetabaseManager(select=["users", "groups"], metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            select=["users", "groups"],
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
         self.assertListEqual([Group, User], manager.get_entities_to_manage())
 
-        manager = MetabaseManager(exclude=["users"], metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            exclude=["users"],
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
         self.assertListEqual([Group], manager.get_entities_to_manage())
 
     def test_parse_config(self):
         """Ensure MetabaseManager.parse_config() calls MetabaseParser.from_paths()."""
-        manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            metabase_host=None, metabase_user=None, metabase_password=None
+        )
 
-        with patch.object(MetabaseParser, "from_paths", return_value=MetabaseParser()) as from_paths:
+        with patch.object(
+            MetabaseParser, "from_paths", return_value=MetabaseParser()
+        ) as from_paths:
             paths = ["path1", "path2"]
             manager.parse_config(paths=paths)
 
@@ -47,7 +70,13 @@ class ManagerTests(TestCase):
 
     def test_cache_metabase(self):
         """Ensure MetabaseManager.cache_metabase() calls MetabaseRegistry"""
-        manager = MetabaseManager(select=["users"], exclude=["groups"], metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            select=["users"],
+            exclude=["groups"],
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
 
         with patch.object(MetabaseRegistry, "cache") as cache:
             manager.cache_metabase()
@@ -69,7 +98,13 @@ class ManagerTests(TestCase):
         )
         registry = MetabaseRegistry(client=None, users=[user1])
         conf = MetabaseParser()
-        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            registry=registry,
+            config=conf,
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
 
         self.assertDictEqual({"my_email": user1}, manager.get_metabase_objects(User))
 
@@ -95,7 +130,13 @@ class ManagerTests(TestCase):
 
         registry = MetabaseRegistry(client=None, users=[user1, user2])
         conf = MetabaseParser()
-        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            registry=registry,
+            config=conf,
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
 
         with self.assertRaises(DuplicateKeyError) as e:
             _ = manager.get_metabase_objects(User)
@@ -110,7 +151,13 @@ class ManagerTests(TestCase):
         )
         registry = MetabaseRegistry(client=None)
         conf = MetabaseParser(_users={"my_email": user1})
-        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            registry=registry,
+            config=conf,
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
 
         self.assertDictEqual({"my_email": user1}, manager.get_config_objects(User))
 
@@ -127,7 +174,13 @@ class ManagerTests(TestCase):
         )
         registry = MetabaseRegistry(client=None)
         conf = MetabaseParser(_users={"my_email": user1, "my_email2": user2})
-        manager = MetabaseManager(registry=registry, config=conf, metabase_host=None, metabase_user=None, metabase_password=None)
+        manager = MetabaseManager(
+            registry=registry,
+            config=conf,
+            metabase_host=None,
+            metabase_user=None,
+            metabase_password=None,
+        )
 
         with self.assertRaises(DuplicateKeyError) as e:
             _ = manager.get_config_objects(User)
@@ -157,9 +210,15 @@ class ManagerTests(TestCase):
             ),
         }
 
-        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
-            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
-                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        with patch.object(
+            MetabaseManager, "get_config_objects", return_value=config
+        ) as c:
+            with patch.object(
+                MetabaseManager, "get_metabase_objects", return_value=registry
+            ) as r:
+                manager = MetabaseManager(
+                    metabase_host=None, metabase_user=None, metabase_password=None
+                )
 
                 out = manager.find_objects_to_create(User)
 
@@ -194,9 +253,15 @@ class ManagerTests(TestCase):
             ),
         }
 
-        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
-            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
-                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        with patch.object(
+            MetabaseManager, "get_config_objects", return_value=config
+        ) as c:
+            with patch.object(
+                MetabaseManager, "get_metabase_objects", return_value=registry
+            ) as r:
+                manager = MetabaseManager(
+                    metabase_host=None, metabase_user=None, metabase_password=None
+                )
 
                 out = manager.find_objects_to_update(User)
 
@@ -226,9 +291,15 @@ class ManagerTests(TestCase):
             ),
         }
 
-        with patch.object(MetabaseManager, "get_config_objects", return_value=config) as c:
-            with patch.object(MetabaseManager, "get_metabase_objects", return_value=registry) as r:
-                manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+        with patch.object(
+            MetabaseManager, "get_config_objects", return_value=config
+        ) as c:
+            with patch.object(
+                MetabaseManager, "get_metabase_objects", return_value=registry
+            ) as r:
+                manager = MetabaseManager(
+                    metabase_host=None, metabase_user=None, metabase_password=None
+                )
 
                 out = manager.find_objects_to_delete(User)
 
@@ -247,7 +318,9 @@ class ManagerTests(TestCase):
                 last_name="my_last_name",
             )
 
-            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager = MetabaseManager(
+                metabase_host=None, metabase_user=None, metabase_password=None
+            )
             manager.create(user)
 
             self.assertIsNone(create.assert_called_with(using=manager.client))
@@ -263,7 +336,9 @@ class ManagerTests(TestCase):
                 last_name="my_last_name",
             )
 
-            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager = MetabaseManager(
+                metabase_host=None, metabase_user=None, metabase_password=None
+            )
             manager.update(user)
 
             self.assertTrue(update.called)
@@ -279,7 +354,9 @@ class ManagerTests(TestCase):
                 last_name="my_last_name",
             )
 
-            manager = MetabaseManager(metabase_host=None, metabase_user=None, metabase_password=None)
+            manager = MetabaseManager(
+                metabase_host=None, metabase_user=None, metabase_password=None
+            )
             manager.delete(user)
 
             self.assertTrue(delete.called)

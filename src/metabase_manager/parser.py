@@ -13,10 +13,7 @@ class MetabaseParser:
     _users: Dict[str, User] = field(default_factory=dict)
     _groups: Dict[str, Group] = field(default_factory=dict)
 
-    _entities = {
-        "users": User,
-        "groups": Group
-    }
+    _entities = {"users": User, "groups": Group}
 
     @property
     def users(self) -> List[User]:
