@@ -17,7 +17,9 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.7"
+pyyaml = "*"
 metabase-python = "^0.3.0"
+alive-progress = "*"
 
 [tool.poetry.dev-dependencies]
 black = "22.1.0"
