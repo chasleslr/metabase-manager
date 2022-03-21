@@ -2,9 +2,9 @@ from unittest.mock import patch
 
 from metabase import PermissionGroup, User
 
-from tests.helpers import IntegrationTestCase
-
+from metabase_manager.exceptions import DuplicateKeyError
 from metabase_manager.registry import MetabaseRegistry
+from tests.helpers import IntegrationTestCase
 
 
 class MetabaseRegistryTests(IntegrationTestCase):
@@ -89,3 +89,20 @@ class MetabaseRegistryTests(IntegrationTestCase):
 
         self.assertEqual(users, registry.get_instances_for_object(User))
         self.assertEqual(groups, registry.get_instances_for_object(PermissionGroup))
+
+    def test_get_group_by_name(self):
+        """
+        Ensure MetabaseRegistry.get_group_by_name() returns an instance of PermissionGroup
+        if one exists with a matching name.
+        """
+        admin1 = PermissionGroup(id=1, name="Administrators", _using=None)
+        admin2 = PermissionGroup(id=2, name="Administrators", _using=None)
+        dev = PermissionGroup(id=3, name="Developers", _using=None)
+
+        registry = MetabaseRegistry(client=None, groups=[admin1, admin2, dev])
+
+        self.assertEqual(dev, registry.get_group_by_name("Developers"))
+        self.assertIsNone(registry.get_group_by_name("unknown"))
+
+        with self.assertRaises(DuplicateKeyError):
+            registry.get_group_by_name("Administrators")
