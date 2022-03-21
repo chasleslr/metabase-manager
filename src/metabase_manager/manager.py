@@ -78,7 +78,14 @@ class MetabaseManager:
     def find_objects_to_create(self, obj: Type[Entity]) -> List[Entity]:
         config = self.get_config_objects(obj)
         metabase = self.get_metabase_objects(obj)
-        return [config[key] for key in config.keys() - metabase.keys()]
+
+        entities = []
+        for key in config.keys() - metabase.keys():
+            entity = config[key]
+            entity.registry = self.registry
+            entities.append(entity)
+
+        return entities
 
     def find_objects_to_update(self, obj: Type[Entity]) -> List[Entity]:
         config = self.get_config_objects(obj)
@@ -87,6 +94,7 @@ class MetabaseManager:
         entities = []
         for key in metabase.keys() & config.keys():
             entity = config[key]
+            entity.registry = self.registry
             if not entity.is_equal(metabase[key]):
                 entity.resource = metabase[key]
                 entities.append(entity)
@@ -96,6 +104,7 @@ class MetabaseManager:
     def find_objects_to_delete(self, obj: Type[Entity]) -> List[Entity]:
         config = self.get_config_objects(obj)
         metabase = self.get_metabase_objects(obj)
+
         return [
             obj.from_resource(resource=metabase[key])
             for key in metabase.keys() - config.keys()

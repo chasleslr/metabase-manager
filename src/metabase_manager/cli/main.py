@@ -20,13 +20,20 @@ def cli():
 )
 @click.option(
     "--host",
+    "-h",
     envvar="METABASE_HOST",
     required=True,
     help="Metabase URL (ex. https://<org>.metabaseapp.com)",
 )
-@click.option("--user", envvar="METABASE_USER", required=True, help="Metabase user")
 @click.option(
-    "--password", envvar="METABASE_PASSWORD", required=True, help="Metabase password"
+    "--user", "-u", envvar="METABASE_USER", required=True, help="Metabase user"
+)
+@click.option(
+    "--password",
+    "-p",
+    envvar="METABASE_PASSWORD",
+    required=True,
+    help="Metabase password",
 )
 @click.option(
     "--select",
@@ -69,9 +76,11 @@ def sync(file, host, user, password, select, exclude, silent, dry_run):
         enrich_print=False,
         receipt=True,
         elapsed="[{elapsed}]",
+        disable=silent,
     ) as bar:
         for obj in manager.get_entities_to_manage():
             bar.text(obj.__name__)
+            manager.cache_metabase()
 
             for entity in manager.find_objects_to_create(obj):
                 if not silent:

@@ -21,3 +21,4 @@ users:
 
 groups:
   - name: Read-Only
+  - name: Developers

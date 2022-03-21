@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import List, Type
+from typing import List, Optional, Type
 
+import metabase
 from metabase import (
     Database,
     Field,
@@ -12,6 +13,8 @@ from metabase import (
     User,
 )
 from metabase.resource import Resource
+
+from metabase_manager.exceptions import DuplicateKeyError
 
 
 @dataclass
@@ -52,3 +55,13 @@ class MetabaseRegistry:
             return self.users
         if obj == PermissionGroup:
             return self.groups
+
+    def get_group_by_name(self, name: str) -> Optional[metabase.PermissionGroup]:
+        groups = list(filter(lambda g: g.name == name, self.groups))
+
+        if len(groups) > 1:
+            raise DuplicateKeyError(
+                f"Found more than one group with the same name: {name}"
+            )
+
+        return next(iter(groups), None)

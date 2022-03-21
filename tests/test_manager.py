@@ -217,7 +217,11 @@ class ManagerTests(TestCase):
                 MetabaseManager, "get_metabase_objects", return_value=registry
             ) as r:
                 manager = MetabaseManager(
-                    metabase_host=None, metabase_user=None, metabase_password=None
+                    metabase_host=None,
+                    metabase_user=None,
+                    metabase_password=None,
+                    registry=registry,
+                    config=config,
                 )
 
                 out = manager.find_objects_to_create(User)
@@ -225,6 +229,7 @@ class ManagerTests(TestCase):
                 self.assertIsInstance(out, list)
                 self.assertEqual(1, len(out))
                 self.assertEqual(out[0], config["not_my_email"])
+                self.assertEqual(out[0].registry, registry)
 
     def test_find_objects_to_update(self):
         """
@@ -260,7 +265,11 @@ class ManagerTests(TestCase):
                 MetabaseManager, "get_metabase_objects", return_value=registry
             ) as r:
                 manager = MetabaseManager(
-                    metabase_host=None, metabase_user=None, metabase_password=None
+                    metabase_host=None,
+                    metabase_user=None,
+                    metabase_password=None,
+                    registry=registry,
+                    config=config,
                 )
 
                 out = manager.find_objects_to_update(User)
@@ -268,6 +277,7 @@ class ManagerTests(TestCase):
                 self.assertIsInstance(out, list)
                 self.assertEqual(1, len(out))
                 self.assertEqual(out[0], config["my_email"])
+                self.assertEqual(out[0].registry, registry)
 
     def test_find_objects_to_delete(self):
         """
