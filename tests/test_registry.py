@@ -1,94 +1,108 @@
-from metabase import Database, Field, Metric, Segment, Table, User
+from unittest.mock import patch
 
+from metabase import PermissionGroup, User
+
+from metabase_manager.exceptions import DuplicateKeyError
+from metabase_manager.registry import MetabaseRegistry
 from tests.helpers import IntegrationTestCase
 
-from metabase_manager.registry import MetabaseRegistry
 
+class MetabaseRegistryTests(IntegrationTestCase):
+    def test_get_registry_keys(self):
+        """Ensure MetabaseRegistry.get_registry_keys() returns all keys in cls._REGISTRY."""
+        registry = MetabaseRegistry(client=None)
 
-class MetabaseTests(IntegrationTestCase):
-    def test_cache_databases(self):
-        """Ensure MetabaseRegistry.cache_databases() saves all databases to the instance."""
-        registry = MetabaseRegistry(client=self.metabase)
+        self.assertListEqual(["groups", "users"], registry.get_registry_keys())
 
-        registry.cache_databases()
-        self.assertIsInstance(registry.databases, list)
-        self.assertIsInstance(next(iter(registry.databases)), Database)
+    def test_cache(self):
+        """Ensure MetabaseRegistry.cache() sets all a"""
+        registry = MetabaseRegistry(client=None)
 
-    def test_cache_tables(self):
-        """Ensure MetabaseRegistry.cache_tables() saves all tables to the instance."""
-        registry = MetabaseRegistry(client=self.metabase)
+        users = [User(_using=None), User(_using=None)]
+        groups = [PermissionGroup(_using=None), PermissionGroup(_using=None)]
 
-        registry.cache_tables()
-        self.assertIsInstance(registry.tables, list)
-        self.assertIsInstance(next(iter(registry.tables)), Table)
+        with patch.object(User, "list", return_value=users) as user:
+            with patch.object(PermissionGroup, "list", return_value=groups) as group:
+                registry.cache()
 
-    def test_cache_users(self):
-        """Ensure MetabaseRegistry.cache_users() saves all users to the instance."""
-        registry = MetabaseRegistry(client=self.metabase)
+                self.assertTrue(user.called)
+                self.assertTrue(group.called)
 
-        registry.cache_users()
-        self.assertIsInstance(registry.users, list)
-        self.assertIsInstance(next(iter(registry.users)), User)
+                self.assertEqual(users, registry.users)
+                self.assertEqual(groups, registry.groups)
 
-    def test_cache_fields(self):
-        """Ensure MetabaseRegistry.cache_fields() saves all fields to the instance."""
-        registry = MetabaseRegistry(client=self.metabase)
+        with patch.object(User, "list") as user:
+            with patch.object(PermissionGroup, "list") as group:
+                registry.cache(select=["users"])
 
-        registry.cache_tables()
-        registry.cache_fields()
-        self.assertIsInstance(registry.fields, list)
-        self.assertIsInstance(next(iter(registry.fields)), Field)
+                self.assertTrue(user.called)
+                self.assertFalse(group.called)
 
-    def test_get_database(self):
-        """Ensure MetabaseRegistry.get_database() returns a Database by ID."""
-        db1 = Database(id=1, _using=self.metabase)
-        db2 = Database(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(databases=[db1, db2], client=self.metabase)
+        with patch.object(User, "list") as user:
+            with patch.object(PermissionGroup, "list") as group:
+                registry.cache(exclude=["users"])
 
-        self.assertEqual(db1, registry.get_database(1))
-        self.assertEqual(db2, registry.get_database(2))
+                self.assertFalse(user.called)
+                self.assertTrue(group.called)
 
-    def test_get_table(self):
-        """Ensure MetabaseRegistry.get_table() returns a Table by ID."""
-        table1 = Table(id=1, _using=self.metabase)
-        table2 = Table(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(tables=[table1, table2], client=self.metabase)
+        with patch.object(User, "list") as user:
+            with patch.object(PermissionGroup, "list") as group:
+                registry.cache(select=["users", "groups"], exclude=["users", "groups"])
 
-        self.assertEqual(table1, registry.get_table(1))
-        self.assertEqual(table2, registry.get_table(2))
+                self.assertFalse(user.called)
+                self.assertFalse(group.called)
 
-    def test_get_field(self):
-        """Ensure MetabaseRegistry.get_field() returns a Field by ID."""
-        field1 = Field(id=1, _using=self.metabase)
-        field2 = Field(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(fields=[field1, field2], client=self.metabase)
+        with patch.object(User, "list", return_value=users) as user:
+            with patch.object(PermissionGroup, "list", return_value=groups) as group:
+                registry.cache(select=None, exclude=None)
 
-        self.assertEqual(field1, registry.get_field(1))
-        self.assertEqual(field2, registry.get_field(2))
+                self.assertTrue(user.called)
+                self.assertTrue(group.called)
 
-    def test_get_user(self):
-        """Ensure MetabaseRegistry.get_user() returns a User by ID."""
-        user1 = User(id=1, _using=self.metabase)
-        user2 = User(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(users=[user1, user2], client=self.metabase)
+                self.assertEqual(users, registry.users)
+                self.assertEqual(groups, registry.groups)
 
-        self.assertEqual(user1, registry.get_user(1))
-        self.assertEqual(user2, registry.get_user(2))
+        with patch.object(User, "list", return_value=users) as user:
+            with patch.object(PermissionGroup, "list", return_value=groups) as group:
+                registry.cache(select=[], exclude=[])
 
-    def test_get_metric(self):
-        """Ensure MetabaseRegistry.get_metric() returns a Metric by ID."""
-        metric1 = Metric(id=1, _using=self.metabase)
-        metric2 = Metric(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(metrics=[metric1, metric2], client=self.metabase)
+                self.assertTrue(user.called)
+                self.assertTrue(group.called)
 
-        self.assertEqual(metric1, registry.get_metric(1))
-        self.assertEqual(metric2, registry.get_metric(2))
+                self.assertEqual(users, registry.users)
+                self.assertEqual(groups, registry.groups)
 
-    def test_get_segment(self):
-        """Ensure MetabaseRegistry.get_segment() returns a Segment by ID."""
-        segment1 = Segment(id=1, _using=self.metabase)
-        segment2 = Segment(id=2, _using=self.metabase)
-        registry = MetabaseRegistry(segments=[segment1, segment2], client=self.metabase)
+    def test_get_instances_for_object(self):
+        """
+        Ensure MetabaseRegistry.get_instances_for_object() returns
+        all instances in the registry for a given Resource.
+        """
+        registry = MetabaseRegistry(client=None)
 
-        self.assertEqual(segment1, registry.get_segment(1))
-        self.assertEqual(segment2, registry.get_segment(2))
+        self.assertEqual([], registry.get_instances_for_object(User))
+        self.assertEqual([], registry.get_instances_for_object(PermissionGroup))
+
+        users = [User(_using=None), User(_using=None)]
+        groups = [PermissionGroup(_using=None), PermissionGroup(_using=None)]
+        registry.users = users
+        registry.groups = groups
+
+        self.assertEqual(users, registry.get_instances_for_object(User))
+        self.assertEqual(groups, registry.get_instances_for_object(PermissionGroup))
+
+    def test_get_group_by_name(self):
+        """
+        Ensure MetabaseRegistry.get_group_by_name() returns an instance of PermissionGroup
+        if one exists with a matching name.
+        """
+        admin1 = PermissionGroup(id=1, name="Administrators", _using=None)
+        admin2 = PermissionGroup(id=2, name="Administrators", _using=None)
+        dev = PermissionGroup(id=3, name="Developers", _using=None)
+
+        registry = MetabaseRegistry(client=None, groups=[admin1, admin2, dev])
+
+        self.assertEqual(dev, registry.get_group_by_name("Developers"))
+        self.assertIsNone(registry.get_group_by_name("unknown"))
+
+        with self.assertRaises(DuplicateKeyError):
+            registry.get_group_by_name("Administrators")

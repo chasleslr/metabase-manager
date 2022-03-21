@@ -1,7 +1,20 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Optional, Type
 
-from metabase import Database, Field, Metabase, Metric, Segment, Table, User
+import metabase
+from metabase import (
+    Database,
+    Field,
+    Metabase,
+    Metric,
+    PermissionGroup,
+    Segment,
+    Table,
+    User,
+)
+from metabase.resource import Resource
+
+from metabase_manager.exceptions import DuplicateKeyError
 
 
 @dataclass
@@ -11,48 +24,44 @@ class MetabaseRegistry:
     databases: List[Database] = field(default_factory=list)
     tables: List[Table] = field(default_factory=list)
     users: List[User] = field(default_factory=list)
+    groups: List[PermissionGroup] = field(default_factory=list)
     fields: List[Field] = field(default_factory=list)
     metrics: List[Metric] = field(default_factory=list)
     segments: List[Segment] = field(default_factory=list)
 
-    def cache_databases(self):
-        """Find all Databases in Metabase and cache in the instance."""
-        self.databases = Database.list(using=self.client)
+    _REGISTRY = {
+        "groups": PermissionGroup,
+        "users": User,
+    }
 
-    def cache_tables(self):
-        """Find all Tables in Metabase and cache in the instance."""
-        self.tables = Table.list(using=self.client)
+    @classmethod
+    def get_registry_keys(cls) -> List[str]:
+        return list(cls._REGISTRY.keys())
 
-    def cache_users(self):
-        """Find all Users in Metabase and cache in the instance."""
-        self.users = User.list(using=self.client)
+    def cache(self, select: List[str] = None, exclude: List[str] = None):
+        if not select:
+            select = self.get_registry_keys()
 
-    def cache_fields(self):
-        """Find all Fields in Metabase and cache in the instance."""
-        for table in self.tables:
-            for field in table.fields():
-                self.fields.append(field)
+        if exclude is None:
+            exclude = {}
 
-    def get_database(self, id: int) -> Database:
-        """Get a Database by ID."""
-        return next(filter(lambda db: db.id == id, self.databases))
+        for key in set(select).difference(set(exclude)):
+            # call .list() method on objects in self._MAPPING for every
+            # key in `select` not in `exclude, and set attribute
+            setattr(self, key, self._REGISTRY[key].list(using=self.client))
 
-    def get_table(self, id: int) -> Table:
-        """Get a Table by ID."""
-        return next(filter(lambda table: table.id == id, self.tables))
+    def get_instances_for_object(self, obj: Type[Resource]) -> List[Resource]:
+        if obj == User:
+            return self.users
+        if obj == PermissionGroup:
+            return self.groups
 
-    def get_field(self, id: int) -> Field:
-        """Get a Field by ID."""
-        return next(filter(lambda field: field.id == id, self.fields))
+    def get_group_by_name(self, name: str) -> Optional[metabase.PermissionGroup]:
+        groups = list(filter(lambda g: g.name == name, self.groups))
 
-    def get_user(self, id: int) -> User:
-        """Get a User by ID."""
-        return next(filter(lambda user: user.id == id, self.users))
+        if len(groups) > 1:
+            raise DuplicateKeyError(
+                f"Found more than one group with the same name: {name}"
+            )
 
-    def get_metric(self, id: int) -> Metric:
-        """Get a Metric by ID."""
-        return next(filter(lambda metric: metric.id == id, self.metrics))
-
-    def get_segment(self, id: int) -> Segment:
-        """Get a Segment by ID."""
-        return next(filter(lambda segment: segment.id == id, self.segments))
+        return next(iter(groups), None)
