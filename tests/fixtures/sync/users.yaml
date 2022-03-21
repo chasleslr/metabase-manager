@@ -1,0 +1,24 @@
+users:
+  - email: user4@example.com
+    first_name: User
+    last_name: Four
+    groups:
+      - New Group
+
+  - email: user5@example.com
+    first_name: User
+    last_name: Five
+    groups:
+
+  - email: user6@example.com
+    first_name: User
+    last_name: Six
+
+  - email: test@example.com
+    first_name: Admin
+    last_name: Admin
+    groups:
+      - Administrators
+
+groups:
+  - name: New Group
