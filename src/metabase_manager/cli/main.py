@@ -49,11 +49,16 @@ def cli():
     multiple=True,
     help="Don't sync certain objects.",
 )
+@click.option(
+    "--no-delete",
+    is_flag=True,
+    help="Don't run the delete step (only create/update existing objects).",
+)
 @click.option("--silent", is_flag=True, help="Don't print logs.")
 @click.option(
     "--dry-run", is_flag=True, help="Don't execute commands that mutate Metabase."
 )
-def sync(file, host, user, password, select, exclude, silent, dry_run):
+def sync(file, host, user, password, select, exclude, no_delete, silent, dry_run):
     """
     Sync your declared configuration to Metabase.
     """
@@ -94,10 +99,11 @@ def sync(file, host, user, password, select, exclude, silent, dry_run):
                 if not dry_run:
                     manager.update(entity)
 
-            for entity in manager.find_objects_to_delete(obj):
-                if not silent:
-                    click.echo(click.style(f"[DELETE] {entity}", fg="red"))
-                if not dry_run:
-                    manager.delete(entity)
+            if not no_delete:
+                for entity in manager.find_objects_to_delete(obj):
+                    if not silent:
+                        click.echo(click.style(f"[DELETE] {entity}", fg="red"))
+                    if not dry_run:
+                        manager.delete(entity)
 
             bar()
