@@ -258,3 +258,26 @@ class CliTests(IntegrationTestCase):
         self.assertEqual("User", user6.first_name)
         self.assertEqual("Six", user6.last_name)
         self.assertSetEqual({1}, set(user6.group_ids))
+
+    def test_sync_no_delete(self):
+        """Ensure --no-delete results in no delete commands being executed on Metabase."""
+        group = PermissionGroup.create(using=self.metabase, name="My Group")
+        groups = [g.name for g in PermissionGroup.list(self.metabase)]
+        self.assertTrue("Developers" not in groups)
+        self.assertTrue("My Group" in groups)
+
+        result = self.runner.invoke(
+            sync, ["-f", self.config_path, "--no-delete"], env=self.env
+        )
+
+        self.assertEqual(0, result.exit_code)
+
+        groups = [g.name for g in PermissionGroup.list(self.metabase)]
+        self.assertTrue("Developers" in groups)
+        # My Group not in metabase.yaml, it should have been deleted if not --no-delete; assert it still exists
+        self.assertTrue("My Group" in groups)
+
+        # assert that without --no-delete, My Group is deleted
+        result = self.runner.invoke(sync, ["-f", self.config_path], env=self.env)
+        groups = [g.name for g in PermissionGroup.list(self.metabase)]
+        self.assertTrue("My Group" not in groups)
