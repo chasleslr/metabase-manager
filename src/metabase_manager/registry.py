@@ -32,11 +32,20 @@ class MetabaseRegistry:
     _REGISTRY = {
         "groups": PermissionGroup,
         "users": User,
+        "databases": Database,
+        "tables": Table
     }
 
     @classmethod
     def get_registry_keys(cls) -> List[str]:
         return list(cls._REGISTRY.keys())
+
+    def test(self):
+        databases = Database.list(using=self.client)
+        tables = [table for db in databases for schema in db.schemas() for table in db.tables(schema)]
+
+        for table in tables:
+            print(table.name, table.display_name, table.description)
 
     def cache(self, select: List[str] = None, exclude: List[str] = None):
         if not select:
@@ -55,6 +64,9 @@ class MetabaseRegistry:
             return self.users
         if obj == PermissionGroup:
             return self.groups
+        if obj == Table:
+            return self.tables
+        raise NotImplementedError(f"{obj.__name__} is not implemented in {self.__class__.__name__}")
 
     def get_group_by_name(self, name: str) -> Optional[metabase.PermissionGroup]:
         groups = list(filter(lambda g: g.name == name, self.groups))

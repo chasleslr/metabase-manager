@@ -107,3 +107,31 @@ def sync(file, host, user, password, select, exclude, no_delete, silent, dry_run
                         manager.delete(entity)
 
             bar()
+
+
+@cli.command()
+@click.option(
+    "--host",
+    "-h",
+    envvar="METABASE_HOST",
+    required=True,
+    help="Metabase URL (ex. https://<org>.metabaseapp.com)",
+)
+@click.option(
+    "--user", "-u", envvar="METABASE_USER", required=True, help="Metabase user"
+)
+@click.option(
+    "--password",
+    "-p",
+    envvar="METABASE_PASSWORD",
+    required=True,
+    help="Metabase password",
+)
+def test(host, user, password):
+    manager = MetabaseManager(
+        metabase_host=host,
+        metabase_user=user,
+        metabase_password=password,
+    )
+
+    manager.test()

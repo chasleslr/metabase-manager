@@ -42,7 +42,7 @@ class Entity:
     def get_key_from_metabase_instance(resource: Resource) -> str:
         """
         Get the key from a Metabase Resource.
-        Compared to Entity.key to find the Metabase Resource matching an Entity.
+        Compare to Entity.key to find the Metabase Resource matching an Entity.
         """
         raise NotImplementedError
 
@@ -50,6 +50,13 @@ class Entity:
     def from_resource(cls, resource: Resource) -> "Entity":
         """Create an instance of Entity from a Resource."""
         raise NotImplementedError
+
+    def can_create(self) -> bool:
+        """
+        Whether a resource can be created if it is not found in Metabase.
+        Some objects are not allowed to be created through the Metabase API (i.e. tables)
+        """
+        return True
 
     @classmethod
     def can_delete(cls, resource: Resource) -> bool:
@@ -235,3 +242,66 @@ class User(Entity):
             raise NotFoundError(
                 f"User {self.email} is part of group {group.name} which could not be found in Metabase."
             )
+
+
+@dataclass
+class Table(Entity):
+    METABASE: ClassVar = metabase.Table
+
+    name: str
+    database: str
+    schema: str
+    display_name: str
+    description: str
+
+    _resource: metabase.Table = field(default=None, repr=False)
+
+    @property
+    def key(self) -> str:
+        # TODO: add database; probably db_id taken from Registry
+        return f'{self.schema.lower()}.{self.name.lower()}'
+
+    @Entity.resource.getter
+    def resource(self) -> metabase.Table:
+        return self._resource
+
+    @staticmethod
+    def get_key_from_metabase_instance(resource: metabase.Table) -> str:
+        # TODO: add db_id
+        return f'{resource.schema.lower()}.{resource.name.lower()}'
+
+    @classmethod
+    def from_resource(cls, resource: metabase.Table) -> "Table":
+        return cls(
+            name=resource.name,
+            database=resource.db_id,    # TODO: fetch database name from db dict if available? Though, driver-specific
+            schema=resource.schema,
+            display_name=resource.display_name,
+            description=resource.description
+        )
+
+    def is_equal(self, resource: metabase.Table) -> bool:
+        if (
+                self.name == resource.name
+                and self.schema == resource.schema
+                and self.database == resource.db_id
+                and self.display_name == resource.display_name
+                and self.description == resource.description
+        ):
+            return True
+        return False
+
+    def can_create(self) -> bool:
+        # tables can never be created
+        return False
+
+    @classmethod
+    def can_delete(cls, resource: metabase.Table) -> bool:
+        # tables can never be deleted
+        return False
+
+    def update(self):
+        self.resource.update(
+            display_name=self.display_name,
+            description=self.description
+        )

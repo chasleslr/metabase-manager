@@ -4,7 +4,7 @@ from typing import Dict, List, Type, Union
 
 import yaml
 
-from metabase_manager.entities import Entity, Group, User
+from metabase_manager.entities import Entity, Group, Table, User
 from metabase_manager.exceptions import InvalidConfigError
 
 
@@ -12,8 +12,9 @@ from metabase_manager.exceptions import InvalidConfigError
 class MetabaseParser:
     _users: Dict[str, User] = field(default_factory=dict)
     _groups: Dict[str, Group] = field(default_factory=dict)
+    _tables: Dict[str, Table] = field(default_factory=dict)
 
-    _entities = {"users": User, "groups": Group}
+    _entities = {"users": User, "groups": Group, "tables": Table}
 
     @property
     def users(self) -> List[User]:
@@ -22,6 +23,10 @@ class MetabaseParser:
     @property
     def groups(self) -> List[Group]:
         return list(self._groups.values())
+
+    @property
+    def tables(self) -> List[Table]:
+        return list(self._tables.values())
 
     @classmethod
     def from_paths(cls, paths: List[str]) -> "MetabaseParser":
@@ -37,6 +42,9 @@ class MetabaseParser:
             return self.users
         if obj == Group:
             return self.groups
+        if obj == Table:
+            return self.tables
+        raise NotImplementedError(f"{obj.__name__} is not implemented in {self.__class__.__name__}")
 
     @staticmethod
     def load_yaml(filepath: Union[str, Path]) -> dict:

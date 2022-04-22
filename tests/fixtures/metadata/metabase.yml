@@ -1,0 +1,19 @@
+
+tables:
+  - name: ORDERS
+    schema: PUBLIC
+    database: 1
+    display_name: Orders
+    description: Includes all orders for products purchased by users.
+
+  - name: PRODUCTS
+    schema: PUBLIC
+    database: 1
+    display_name: Products
+    description: Includes a catalog of all the products ever sold by the famed Sample Company.
+
+  - name: TRANSACTIONS
+    schema: PUBLIC
+    database: 1
+    display_name: Transactions
+    description: Includes transaction records from payment processors, both successful and declined.

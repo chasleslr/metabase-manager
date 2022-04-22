@@ -4,7 +4,7 @@ from typing import Dict, List, Type
 from metabase import Metabase
 from metabase.resource import Resource
 
-from metabase_manager.entities import Entity, Group, User
+from metabase_manager.entities import Entity, Group, Table, User
 from metabase_manager.exceptions import DuplicateKeyError
 from metabase_manager.parser import MetabaseParser
 from metabase_manager.registry import MetabaseRegistry
@@ -27,6 +27,7 @@ class MetabaseManager:
     _entities = {
         "groups": Group,
         "users": User,
+        "tables": Table
     }
 
     def __post_init__(self, metabase_host, metabase_user, metabase_password):
@@ -52,6 +53,10 @@ class MetabaseManager:
     def cache_metabase(self):
         self.registry = MetabaseRegistry(client=self.client)
         self.registry.cache(self.select, self.exclude)
+
+    def test(self):
+        registry = MetabaseRegistry(client=self.client)
+        registry.test()
 
     def get_metabase_objects(self, obj: Type[Entity]) -> Dict[str, Resource]:
         metabase = {}
@@ -83,7 +88,9 @@ class MetabaseManager:
         for key in config.keys() - metabase.keys():
             entity = config[key]
             entity.registry = self.registry
-            entities.append(entity)
+
+            if entity.can_create():
+                entities.append(entity)
 
         return entities
 
